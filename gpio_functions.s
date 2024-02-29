@@ -1,3 +1,12 @@
+/*
+ *  This is a fragment of RP2040 assembly code used as an input to the static analyzer.
+ *  For more information visit: https://gitlab.com/Levi7than/picoprojects
+ *
+ *  BSD 3-Clause License
+ *
+ *  Copyright (c) 2024, Artur Twardzik
+ */
+
 .cpu cortex-m0
 .thumb
 .equ GPIO_OE, 0x20
