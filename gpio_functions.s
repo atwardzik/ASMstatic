@@ -1,14 +1,17 @@
 /*
- *  This is a fragment of RP2040 assembly code used as an input to the static analyzer.
- *  For more information visit: https://gitlab.com/Levi7than/picoprojects
+ *This is a fragment of RP2040 assembly code used as an input to the static analyzer.
+For more information visit: https://gitlab.com/Levi7than/picoprojects
  *
  *  BSD 3-Clause License
  *
+
  *  Copyright (c) 2024, Artur Twardzik
  */
 
 .cpu cortex-m0
 .thumb
+
+
 .equ GPIO_OE, 0x20
 .equ GPIO_OE_SET, 0x24
 .equ GPIO_OE_CLR, 0x28
@@ -69,7 +72,7 @@ init_pin_input_with_pull:
     adds r0, r0, #0x04              @ add offset start (GPIO0)
     add r0, r0, r3
 
-    @ OUTPUT DISABLE + INPUT ENABLE = 0xC0
+    @OUTPUT DISABLE + INPUT ENABLE = 0xC0
     @ PULL DOWN - BIT 2 ; PULL UP - BIT 3
     cmp r1, #0
     bne .pull_up

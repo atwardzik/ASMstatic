@@ -29,6 +29,87 @@ pub const KEYWORDS_WITH_ARGS: [&str; 70] = [
 
 const MAX_KEYWORD_LENGTH: usize = 6;
 
+pub struct CommentHandler {
+    line: String,
+    multiline: bool,
+    single_line: bool,
+    empty_line: bool,
+}
+
+impl CommentHandler {
+    pub fn new() -> CommentHandler {
+        CommentHandler { line: String::new(), multiline: false, single_line: false, empty_line: false }
+    }
+
+    pub fn handle(&mut self, line: &str) {
+        if line.trim().is_empty() {
+            self.empty_line = true;
+            return;
+        }
+
+        self.line = String::from(line);
+
+        if self.is_single_line_comment() {
+            self.single_line = true;
+        } else if line.starts_with("/*") {
+            self.multiline = true;
+        }
+    }
+
+    pub fn print_comment(&mut self) {
+        if self.empty_line && !self.multiline {
+            self.empty_line = false;
+            println!();
+        } else if self.single_line {
+            self.print_single_comment();
+            self.single_line = false;
+        } else if self.line.contains("*/") {
+            self.multiline = false;
+            println!(" */");
+        } else if self.line.contains("/*") {
+            println!("/*");
+        } else if self.multiline {
+            self.print_multi_comment_body();
+        }
+    }
+
+    pub fn is_comment(&self) -> bool {
+        self.single_line || self.multiline || self.empty_line
+    }
+
+    fn is_single_line_comment(&self) -> bool {
+        let line_trimmed = self.line.trim();
+
+        if line_trimmed.is_empty() || line_trimmed.starts_with('@') {
+            return true;
+        }
+        false
+    }
+
+    fn print_multi_comment_body(&self) {
+        print!(" * ");
+        let mut comment = String::from(self.line.trim());
+
+        if comment.starts_with('*') {
+            comment.remove(0);
+        }
+
+        println!("{}", comment);
+    }
+
+    fn print_single_comment(&self) {
+        let mut comment = self.line.clone();
+        let after_comment_sign = comment.find('@').unwrap() + 1;
+        let first_comment_char = comment.as_bytes()[after_comment_sign];
+
+        if first_comment_char != (' ' as u8) &&
+            first_comment_char != ('@' as u8) {
+            comment.insert(after_comment_sign, ' ');
+        }
+
+        println!("{}", comment);
+    }
+}
 
 pub fn is_instruction_format(line: &str) -> bool {
     if is_not_instruction(line) || !starts_with_keyword(line) {
@@ -70,7 +151,7 @@ fn starts_with_keyword(line: &str) -> bool {
     KEYWORDS_WITH_ARGS.contains(&first_token.as_str())
 }
 
-pub fn get_keyword_spaces(keyword: &str) -> String {
+fn get_keyword_spaces(keyword: &str) -> String {
     if !KEYWORDS_WITH_ARGS.contains(&keyword) {
         panic!("[!] `{}` is not a valid keyword. Aborting.", keyword);
     }
@@ -80,7 +161,7 @@ pub fn get_keyword_spaces(keyword: &str) -> String {
     String::from_utf8(vec![b' '; spaces_amount]).unwrap()
 }
 
-fn normalize_command_spacing(command: &str) -> String {
+pub fn normalize_command_spacing(command: &str) -> String {
     let tokens: Vec<&str> = command.split_terminator(&[' ', '\t', '\r', ','])
         .filter(|&x| !x.is_empty())
         .collect();
@@ -94,6 +175,20 @@ fn normalize_command_spacing(command: &str) -> String {
 
     normalized_command += &tokens[1..].join(", ");
     normalized_command
+}
+
+pub fn get_aligned_indent(indent: usize) -> String {
+    let spaces_amount = indent.div_ceil(4) * 4;
+
+    String::from_utf8(vec![b' '; spaces_amount]).unwrap()
+}
+
+pub fn is_label(line: &str) -> bool {
+    if line.split_whitespace().collect::<Vec<_>>().len() == 1 && line.trim().ends_with(':') {
+        return true;
+    }
+
+    false
 }
 
 #[cfg(test)]
