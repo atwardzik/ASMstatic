@@ -67,9 +67,7 @@ fn starts_with_keyword(line: &str) -> bool {
         .collect::<Vec<&str>>()[0]
         .to_ascii_lowercase();
 
-    let is_token = KEYWORDS_WITH_ARGS.contains(&first_token.as_str());
-
-    return is_token;
+    KEYWORDS_WITH_ARGS.contains(&first_token.as_str())
 }
 
 pub fn get_keyword_spaces(keyword: &str) -> String {
