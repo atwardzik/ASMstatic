@@ -73,22 +73,30 @@ fn starts_with_keyword(line: &str) -> bool {
     return is_token;
 }
 
-pub fn normalize_keyword_spacing(line: &str) -> String {
-    let tokens: Vec<&str> = line.split_whitespace().collect();
+pub fn get_keyword_spaces(keyword: &str) -> String {
+    if !KEYWORDS_WITH_ARGS.contains(&keyword) {
+        panic!("[!] `{}` is not a valid keyword. Aborting.", keyword);
+    }
 
-    let keyword_position = line.find(tokens[0]).unwrap();
-    let keyword_length = tokens[0].len();
-    let argument_position = line.find(tokens[1]).unwrap();
+    let spaces_amount = MAX_KEYWORD_LENGTH - keyword.len();
 
-    let spaces_amount = MAX_KEYWORD_LENGTH - keyword_length;
+    String::from_utf8(vec![b' '; spaces_amount]).unwrap()
+}
 
-    let mut transformed_line: String = String::new();
-    transformed_line += &line[..keyword_position];
-    transformed_line += tokens[0];
-    transformed_line += String::from_utf8(vec![b' '; spaces_amount]).unwrap().as_str();
-    transformed_line += &line[argument_position..];
+fn normalize_command_spacing(command: &str) -> String {
+    let tokens: Vec<&str> = command.split_terminator(&[' ', '\t', '\r', ','])
+        .filter(|&x| !x.is_empty())
+        .collect();
 
-    transformed_line
+    let mut normalized_command = String::from(tokens[0]);
+
+    if tokens.len() == 1 {
+        return normalized_command;
+    }
+    normalized_command += get_keyword_spaces(&normalized_command).as_str();
+
+    normalized_command += &tokens[1..].join(", ");
+    normalized_command
 }
 
 #[cfg(test)]
@@ -131,8 +139,10 @@ mod tests {
     }
 
     #[test]
-    fn test_normalize_keyword_spacing() {
-        assert_eq!(normalize_keyword_spacing("ldr r1, r2"), "ldr   r1, r2");
-        assert_eq!(normalize_keyword_spacing("b        .init"), "b     .init");
+    fn test_normalize_argument_spacing() {
+        assert_eq!(normalize_command_spacing("ldr r1, r2"), "ldr   r1, r2");
+        assert_eq!(normalize_command_spacing("b        .init"), "b     .init");
+        assert_eq!(normalize_command_spacing("adds r0 , r1, r2"), "adds  r0, r1, r2");
+        assert_eq!(normalize_command_spacing("adds r0 , r1 , r2"), "adds  r0, r1, r2");
     }
 }
