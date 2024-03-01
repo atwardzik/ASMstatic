@@ -136,7 +136,7 @@ mod tests {
     }
 
     #[test]
-    fn test_normalize_argument_spacing() {
+    fn test_normalize_command_spacing() {
         assert_eq!(normalize_command_spacing("ldr r1, r2"), "ldr   r1, r2");
         assert_eq!(normalize_command_spacing("b        .init"), "b     .init");
         assert_eq!(normalize_command_spacing("adds r0 , r1, r2"), "adds  r0, r1, r2");
