@@ -18,13 +18,12 @@
 use regex::Regex;
 
 pub const KEYWORDS_WITH_ARGS: [&str; 70] = [
-    "movs", "mov", "adds", "add", "adcs", "adr", "subs", "sbcs", "sub", "rsbs", "muls",
-    "cmp", "cmn", "ands", "eors", "orrs", "bics", "mvns", "tst", "lsls", "lsrs", "asrs",
-    "rors", "ldr", "ldrh", "ldrb", "ldrsh", "lsrsb", "ldm", "str", "strh", "strb", "str",
-    "strh", "strb", "str", "stm", "push", "pop", "b", "bl", "bx", "blx", "beq", "bne",
-    "bgt", "blt", "bge", "ble", "bcs", "bcc", "bmi", "bpl", "bvs", "bvc", "bhi", "bls",
-    "sxth", "sxtb", "uxth", "uxtb", "rev", "rev16", "revsh", "svc", "cpsid", "cpsie",
-    "mrs", "msr", "bkpt"
+    "movs", "mov", "adds", "add", "adcs", "adr", "subs", "sbcs", "sub", "rsbs", "muls", "cmp",
+    "cmn", "ands", "eors", "orrs", "bics", "mvns", "tst", "lsls", "lsrs", "asrs", "rors", "ldr",
+    "ldrh", "ldrb", "ldrsh", "lsrsb", "ldm", "str", "strh", "strb", "str", "strh", "strb", "str",
+    "stm", "push", "pop", "b", "bl", "bx", "blx", "beq", "bne", "bgt", "blt", "bge", "ble", "bcs",
+    "bcc", "bmi", "bpl", "bvs", "bvc", "bhi", "bls", "sxth", "sxtb", "uxth", "uxtb", "rev",
+    "rev16", "revsh", "svc", "cpsid", "cpsie", "mrs", "msr", "bkpt",
 ];
 
 const MAX_KEYWORD_LENGTH: usize = 6;
@@ -38,7 +37,12 @@ pub struct CommentHandler {
 
 impl CommentHandler {
     pub fn new() -> CommentHandler {
-        CommentHandler { line: String::new(), multiline: false, single_line: false, empty_line: false }
+        CommentHandler {
+            line: String::new(),
+            multiline: false,
+            single_line: false,
+            empty_line: false,
+        }
     }
 
     pub fn handle(&mut self, line: &str) {
@@ -56,21 +60,23 @@ impl CommentHandler {
         }
     }
 
-    pub fn print_comment(&mut self) {
+    pub fn get_comment(&mut self) -> String {
         if self.empty_line && !self.multiline {
             self.empty_line = false;
-            println!();
+            return String::from("\n");
         } else if self.single_line {
-            self.print_single_comment();
             self.single_line = false;
+            return self.get_single_comment();
         } else if self.line.contains("*/") {
             self.multiline = false;
-            println!(" */");
+            return String::from(" */\n");
         } else if self.line.contains("/*") {
-            println!("/*");
+            return String::from("/*\n");
         } else if self.multiline {
-            self.print_multi_comment_body();
+            return self.get_multi_comment_body();
         }
+
+        String::new()
     }
 
     pub fn is_comment(&self) -> bool {
@@ -86,28 +92,25 @@ impl CommentHandler {
         false
     }
 
-    fn print_multi_comment_body(&self) {
-        print!(" * ");
+    fn get_multi_comment_body(&self) -> String {
         let mut comment = String::from(self.line.trim());
-
         if comment.starts_with('*') {
             comment.remove(0);
         }
 
-        println!("{}", comment);
+        format!(" * {}\n", comment.trim())
     }
 
-    fn print_single_comment(&self) {
+    fn get_single_comment(&self) -> String {
         let mut comment = self.line.clone();
         let after_comment_sign = comment.find('@').unwrap() + 1;
         let first_comment_char = comment.as_bytes()[after_comment_sign];
 
-        if first_comment_char != (' ' as u8) &&
-            first_comment_char != ('@' as u8) {
+        if first_comment_char != (' ' as u8) && first_comment_char != ('@' as u8) {
             comment.insert(after_comment_sign, ' ');
         }
 
-        println!("{}", comment);
+        format!("{}\n", comment)
     }
 }
 
@@ -116,13 +119,9 @@ pub fn is_instruction_format(line: &str) -> bool {
         return false;
     }
 
-    let re = Regex::new(
-        r"^[A-Za-z]{1,5}\s*(\w|\W)*(\s*,\s*=?#?\w+(\s*,\s*#?\w+)?)?.*$")
-        .unwrap();
+    let re = Regex::new(r"^[A-Za-z]{1,5}\s*(\w|\W)*(\s*,\s*=?#?\w+(\s*,\s*#?\w+)?)?.*$").unwrap();
 
-    let re_stack = Regex::new(
-        r"^[A-Za-z]{1,5}\s*\{(\w|\W|\d)*}.*$")
-        .unwrap();
+    let re_stack = Regex::new(r"^[A-Za-z]{1,5}\s*\{(\w|\W|\d)*}.*$").unwrap();
 
     if re.is_match(line.trim()) || re_stack.is_match(line.trim()) {
         return true;
@@ -134,9 +133,13 @@ pub fn is_instruction_format(line: &str) -> bool {
 fn is_not_instruction(line: &str) -> bool {
     let line_stripped = line.trim();
 
-    if line_stripped.is_empty() || line_stripped.starts_with('.') ||
-        line_stripped.starts_with('@') || line_stripped.starts_with("/*") ||
-        line_stripped.contains("*/") || line_stripped.starts_with("*") {
+    if line_stripped.is_empty()
+        || line_stripped.starts_with('.')
+        || line_stripped.starts_with('@')
+        || line_stripped.starts_with("/*")
+        || line_stripped.contains("*/")
+        || line_stripped.starts_with("*")
+    {
         return true;
     }
 
@@ -144,9 +147,7 @@ fn is_not_instruction(line: &str) -> bool {
 }
 
 fn starts_with_keyword(line: &str) -> bool {
-    let first_token = line.split_whitespace()
-        .collect::<Vec<&str>>()[0]
-        .to_ascii_lowercase();
+    let first_token = line.split_whitespace().collect::<Vec<&str>>()[0].to_ascii_lowercase();
 
     KEYWORDS_WITH_ARGS.contains(&first_token.as_str())
 }
@@ -162,7 +163,8 @@ fn get_keyword_spaces(keyword: &str) -> String {
 }
 
 pub fn normalize_command_spacing(command: &str) -> String {
-    let tokens: Vec<&str> = command.split_terminator(&[' ', '\t', '\r', ','])
+    let tokens: Vec<&str> = command
+        .split_terminator(&[' ', '\t', '\r', ','])
         .filter(|&x| !x.is_empty())
         .collect();
 
@@ -189,6 +191,41 @@ pub fn is_label(line: &str) -> bool {
     }
 
     false
+}
+
+pub fn format(contents: &str) -> String {
+    let mut comment_handler = CommentHandler::new();
+    let mut output = String::new();
+
+    for line in contents.split('\n') {
+        comment_handler.handle(line);
+        if comment_handler.is_comment() {
+            output += comment_handler.get_comment().as_str();
+            continue;
+        }
+
+        let _ = is_label(line);
+        let indent_size = line.find(line.trim()).unwrap();
+        output += get_aligned_indent(indent_size).as_str();
+
+        if is_instruction_format(line) {
+            let comment = line.find('@');
+
+            match comment {
+                Some(comment_position) => {
+                    output += normalize_command_spacing(&line[..comment_position - 1]).as_str();
+                    output += format!("\t\t\t{}\n", &line[comment_position..]).as_str();
+                }
+                None => {
+                    output += format!("{}\n", normalize_command_spacing(line)).as_str();
+                }
+            };
+        } else {
+            output += format!("{}\n", line.trim()).as_str();
+        }
+    }
+
+    output
 }
 
 #[cfg(test)]
@@ -234,7 +271,13 @@ mod tests {
     fn test_normalize_command_spacing() {
         assert_eq!(normalize_command_spacing("ldr r1, r2"), "ldr   r1, r2");
         assert_eq!(normalize_command_spacing("b        .init"), "b     .init");
-        assert_eq!(normalize_command_spacing("adds r0 , r1, r2"), "adds  r0, r1, r2");
-        assert_eq!(normalize_command_spacing("adds r0 , r1 , r2"), "adds  r0, r1, r2");
+        assert_eq!(
+            normalize_command_spacing("adds r0 , r1, r2"),
+            "adds  r0, r1, r2"
+        );
+        assert_eq!(
+            normalize_command_spacing("adds r0 , r1 , r2"),
+            "adds  r0, r1, r2"
+        );
     }
 }
