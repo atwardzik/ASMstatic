@@ -16,6 +16,9 @@
  */
 
 use regex::Regex;
+use std::ffi::c_char;
+use std::slice;
+use std::str;
 
 pub const KEYWORDS_WITH_ARGS: [&str; 70] = [
     "movs", "mov", "adds", "add", "adcs", "adr", "subs", "sbcs", "sub", "rsbs", "muls", "cmp",
@@ -226,6 +229,36 @@ pub fn format(contents: &str) -> String {
     }
 
     output
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn format_arm_asm_code(
+    contents: *const c_char,
+    length: usize,
+) -> *mut c_char {
+    if contents.is_null() || std::ptr::read(contents) as u8 == 0u8 {
+        return std::ptr::null_mut();
+    }
+
+    let contents_str =
+        str::from_utf8_unchecked(slice::from_raw_parts(contents as *const u8, length));
+
+    let formatted_contents = format(contents_str);
+    let formatted_contents_length = formatted_contents.as_bytes().len();
+    let null_terminated_length = formatted_contents_length + 1;
+
+    let formatted_str: *mut c_char = libc::malloc(null_terminated_length).cast();
+    std::ptr::copy(
+        formatted_contents.as_str().as_bytes().as_ptr().cast(),
+        formatted_str,
+        formatted_contents_length,
+    );
+    std::ptr::write(
+        formatted_str.offset(formatted_contents_length as isize) as *mut u8,
+        0u8,
+    );
+
+    formatted_str
 }
 
 #[cfg(test)]
