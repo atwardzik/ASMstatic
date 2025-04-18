@@ -228,6 +228,9 @@ pub fn format(contents: &str) -> String {
         }
     }
 
+    output = output.trim_end().parse().unwrap();
+    output += "\n";
+
     output
 }
 
